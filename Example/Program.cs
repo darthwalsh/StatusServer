@@ -4,13 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Nancy;
 using Nancy.Hosting.Self;
+using StatusServer;
 
-namespace StatusServer
+namespace Example
 {
 	public class YesStatus : Status
 	{
+		public YesStatus()
+			: base(TimeSpan.FromSeconds(10)) {
+		}
+
 		public override string Name {
 			get { return "Yes"; }
 		}
@@ -33,6 +37,10 @@ namespace StatusServer
 
 	public class FileStatus : Status
 	{
+		public FileStatus()
+			: base(TimeSpan.FromSeconds(1)) {
+		}
+
 		public override string Name {
 			get { return "File"; }
 		}
@@ -45,7 +53,6 @@ namespace StatusServer
 
 	class Program
 	{
-		//TODO move to new project
 		static void Main(string[] args) {
 
 			NancyHost host;

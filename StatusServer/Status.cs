@@ -18,12 +18,16 @@ namespace StatusServer
 				.ToList();
 		}
 
-		protected Status() {
+		protected Status()
+			: this(TimeSpan.FromSeconds(5)) {
+		}
+
+		protected Status(TimeSpan delay) {
 			this.Fault = "Not running yet!";
 
 			new Thread(() => {
 				while (true) {
-					Thread.Sleep(TimeSpan.FromSeconds(5)); //TODO take as parameter?
+					Thread.Sleep(delay);
 					try {
 						Verify();
 						this.Fault = null;
