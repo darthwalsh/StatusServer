@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Nancy;
 
 namespace StatusServer
@@ -24,7 +26,7 @@ namespace StatusServer
 				var model = new StatiModel {
 					Stati = Status.All.Select(s => new StatusModel { 
 						Name = s.Name,
-						Message = s.Fault ?? "works",
+						Message = WebUtility.HtmlEncode(s.Fault ?? "works"),
 						Color = s.Fault == null ? "green" : "red",
 					}).ToList()
 				};

@@ -1,28 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 
 namespace StatusServer
 {
 	public abstract class Status
 	{
-		internal static List<Status> All = new List<Status>();
+		static List<Status> all;
+		static ExceptionDispatchInfo exception;
+
+		internal static List<Status> All {
+			get {
+				if (exception != null)
+					exception.Throw();
+				return all;
+			}
+		}
 
 		static Status() {
-			All = AppDomain.CurrentDomain.GetAssemblies()
-				.SelectMany(a => a.GetTypes())
-				.Where(t => t.IsSubclassOf(typeof(Status)))
-				.Select(Activator.CreateInstance)
-				.Cast<Status>()
-				.ToList();
+			try {
+				all = AppDomain.CurrentDomain.GetAssemblies()
+			.SelectMany(a => a.GetTypes())
+			.Where(t => t.IsSubclassOf(typeof(Status)))
+			.Select(Activator.CreateInstance)
+			.Cast<Status>()
+			.ToList();
+			} catch (Exception e) {
+				exception = ExceptionDispatchInfo.Capture(e);
+			}
 		}
 
-		protected Status()
-			: this(TimeSpan.FromSeconds(5)) {
+		protected Status(string name)
+			: this(name, TimeSpan.FromSeconds(5)) {
 		}
 
-		protected Status(TimeSpan delay) {
+		protected Status(string name, TimeSpan delay) {
+			if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+				throw new ArgumentException("name", "Not a valid file name!");
+
+			this.Name = name;
 			this.Fault = "Not running yet!";
 
 			new Thread(() => {
@@ -43,7 +63,7 @@ namespace StatusServer
 		// not very thread-safe, but probably nothing will go wrong
 		public string Fault { get; private set; }
 
-		public abstract string Name { get; }
+		public string Name { get; private set; }
 		
 		protected abstract void Verify();
 	}

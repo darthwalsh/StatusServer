@@ -12,11 +12,7 @@ namespace Example
 	public class YesStatus : Status
 	{
 		public YesStatus()
-			: base(TimeSpan.FromSeconds(10)) {
-		}
-
-		public override string Name {
-			get { return "Yes"; }
+			: base("Yes", TimeSpan.FromSeconds(10)) {
 		}
 
 		protected override void Verify() {
@@ -26,23 +22,19 @@ namespace Example
 
 	public class NoStatus : Status
 	{
-		public override string Name {
-			get { return "No"; }
+		public NoStatus()
+			: base("No") {
 		}
 
 		protected override void Verify() {
-			throw new Exception("MyMessage");
+			throw new Exception("<b>MyMessage<\\b>");
 		}
 	}
 
 	public class FileStatus : Status
 	{
 		public FileStatus()
-			: base(TimeSpan.FromSeconds(1)) {
-		}
-
-		public override string Name {
-			get { return "File"; }
+			: base("File", TimeSpan.FromSeconds(1)) {
 		}
 
 		protected override void Verify() {
