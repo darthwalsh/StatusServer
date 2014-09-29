@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("StatusServer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Status dashboard web server")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("StatusServer")]
-[assembly: AssemblyCopyright("Copyright ©  2014")]
+[assembly: AssemblyCompany("Carl Walsh")]
+[assembly: AssemblyProduct("StatusServer https://github.com/darth-walsh/StatusServer")]
+[assembly: AssemblyCopyright("Copyright ©  2014 - License: MIT")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
