@@ -2,15 +2,16 @@
 <html>
 <head>
   <title>
-    Status
+    @Model.Name
   </title>
   <meta charset="UTF-8">
 </head>
 <body>
+  <a href="/">Go back</a>
   <table border="1">
-    @Each.Stati
+    @Each.Histories
     <tr>
-      <td><a style="color:@Current.Color" href="details?name=@Current.Name">@Current.Name</a></td>
+      <td style="color:@Current.Color">@Current.DateTime</td>
       <td>@Current.Message</td>
     </tr>
     @EndEach

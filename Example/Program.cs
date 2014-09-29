@@ -27,7 +27,7 @@ namespace Example
 		}
 
 		protected override void Verify() {
-			throw new Exception("<b>MyMessage<\\b>");
+			throw new ArgumentOutOfRangeException("<b>MyMessage<\\b>");
 		}
 	}
 
@@ -39,13 +39,15 @@ namespace Example
 
 		protected override void Verify() {
 			if (!File.Exists(@"C:\Users\Carl\Documents\GitHub\temp\out.txt"))
-				throw new Exception("out.txt is gone!");
+				throw new ArgumentOutOfRangeException("out.txt is gone!");
 		}
 	}
 
 	class Program
 	{
 		static void Main(string[] args) {
+
+			Status.Initialize();
 
 			NancyHost host;
 			if (args.Length == 0) {
