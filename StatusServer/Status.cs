@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 
 namespace StatusServer
@@ -48,6 +46,12 @@ namespace StatusServer
 
 	public abstract class Status
 	{
+#if DEBUG
+		static readonly TimeSpan defaultWait = TimeSpan.FromSeconds(1); 
+#else
+		static readonly TimeSpan defaultWait = TimeSpan.FromMinutes(5);
+#endif
+
 		static Dictionary<string, Status> all;
 
 		internal static Dictionary<string, Status> All {
@@ -67,7 +71,7 @@ namespace StatusServer
 		}
 
 		protected Status()
-			: this(TimeSpan.FromMinutes(5)) {
+			: this(defaultWait) {
 		}
 
 		protected Status(TimeSpan delay) {
