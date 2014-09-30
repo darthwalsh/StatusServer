@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using Nancy;
 
 namespace StatusServer
@@ -65,6 +66,23 @@ namespace StatusServer
 
 				return View["details.html", model];
 			};
+		}
+	}
+
+	public class StatusServerBootstrapper : DefaultNancyBootstrapper
+	{
+		private byte[] favicon;
+
+		protected override byte[] FavIcon {
+			get { return this.favicon ?? (this.favicon = LoadFavIcon()); }
+		}
+
+		byte[] LoadFavIcon() {
+			using (var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("StatusServer.img.favicon.ico")) {
+				var tempFavicon = new byte[resourceStream.Length];
+				resourceStream.Read(tempFavicon, 0, (int)resourceStream.Length);
+				return tempFavicon;
+			}
 		}
 	}
 }
