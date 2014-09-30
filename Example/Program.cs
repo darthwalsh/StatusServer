@@ -31,16 +31,23 @@ namespace Example
 		}
 	}
 
-	public class FileStatus : Status
+	public abstract class FileStatus : Status
 	{
 		public FileStatus()
 			: base("File", TimeSpan.FromSeconds(1)) {
 		}
 
+		protected abstract string FilePath { get; }
+
 		protected override void Verify() {
-			if (!File.Exists(@"C:\Users\Carl\Documents\GitHub\temp\out.txt"))
-				throw new ArgumentOutOfRangeException("out.txt is gone!");
+			if (!File.Exists(this.FilePath))
+				throw new ArgumentOutOfRangeException("the file is gone!");
 		}
+	}
+
+	public class OutFile : FileStatus
+	{
+		protected override string FilePath { get { return @"C:\Users\Carl\Documents\GitHub\temp\out.txt"; } }
 	}
 
 	class Program

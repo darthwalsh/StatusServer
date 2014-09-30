@@ -60,6 +60,7 @@ namespace StatusServer
 			all = AppDomain.CurrentDomain.GetAssemblies()
 			.SelectMany(a => a.GetTypes())
 			.Where(t => t.IsSubclassOf(typeof(Status)))
+			.Where(t => !t.IsAbstract)
 			.Select(Activator.CreateInstance)
 			.Cast<Status>()
 			.ToDictionary(s => s.Name);
