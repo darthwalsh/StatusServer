@@ -9,10 +9,11 @@ using StatusServer;
 
 namespace Example
 {
+	//TODO clean up
 	public class YesStatus : Status
 	{
 		public YesStatus()
-			: base("Yes", TimeSpan.FromSeconds(10)) {
+			: base(TimeSpan.FromSeconds(10)) {
 		}
 
 		protected override void Verify() {
@@ -23,7 +24,7 @@ namespace Example
 	public class NoStatus : Status
 	{
 		public NoStatus()
-			: base("No") {
+			: base() {
 		}
 
 		protected override void Verify() {
@@ -34,7 +35,7 @@ namespace Example
 	public abstract class FileStatus : Status
 	{
 		public FileStatus()
-			: base("File", TimeSpan.FromSeconds(1)) {
+			: base(TimeSpan.FromSeconds(1)) {
 		}
 
 		protected abstract string FilePath { get; }
@@ -48,6 +49,14 @@ namespace Example
 	public class OutFile : FileStatus
 	{
 		protected override string FilePath { get { return @"C:\Users\Carl\Documents\GitHub\temp\out.txt"; } }
+	}
+
+	public class Whatever
+	{
+		public class Inner : FileStatus
+		{
+			protected override string FilePath { get { return @"C:\Users\Carl\Documents\GitHub\StatusServer\.gitignore"; } }
+		}
 	}
 
 	class Program

@@ -66,11 +66,13 @@ namespace StatusServer
 			.ToDictionary(s => s.Name);
 		}
 
-		protected Status(string name)
-			: this(name, TimeSpan.FromMinutes(5)) {
+		protected Status()
+			: this(TimeSpan.FromMinutes(5)) {
 		}
 
-		protected Status(string name, TimeSpan delay) {
+		protected Status(TimeSpan delay) {
+			string name = GetType().Name;
+			
 			if (!name.All(char.IsLetterOrDigit) || name.Length == 0)
 				throw new ArgumentException("name", "Not a valid file name!");
 
@@ -85,8 +87,6 @@ namespace StatusServer
 						.Select(StatusData.TryDeserialize)
 						.Where(data => data != null)
 						.OrderBy(data => data.DateTime));
-
-
 
 			Log(new StatusData("Initializing... (server just started)"));
 
@@ -136,7 +136,7 @@ namespace StatusServer
 		internal IStack<StatusData> History { get; private set; }
 
 		public string Name { get; private set; }
-		
+
 		protected abstract void Verify();
 	}
 }
