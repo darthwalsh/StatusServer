@@ -16,7 +16,7 @@ namespace StatusServer
 		bool IsEmpty { get; }
 	}
 
-	sealed class ImmutableStack<T> : IStack<T>
+	sealed class ImmutableStack<T> : IStack<T>, IEnumerable<T>
 	{
 		static readonly EmptyStack empty = new EmptyStack();
 		public static IStack<T> Empty { get { return empty; } }
