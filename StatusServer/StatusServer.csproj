@@ -50,6 +50,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PingStatus.cs" />
+    <Compile Include="HttpStatus.cs" />
     <Compile Include="ImmutableStack.cs" />
     <Compile Include="Status.cs" />
     <Compile Include="StatusModule.cs" />

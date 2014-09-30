@@ -59,6 +59,34 @@ namespace Example
 		}
 	}
 
+	public class Google : HttpStatus
+	{
+		protected override Uri Uri {
+			get { return new Uri("http://google.com"); }
+		}
+	}
+
+	public class FakeSite : HttpStatus
+	{
+		protected override Uri Uri {
+			get { return new Uri("http://fakesitefdsafdsafdsf.com"); }
+		}
+	}
+
+	public class LocalPing : PingStatus
+	{
+		protected override string ServerPath {
+			get { return "localhost"; }
+		}
+	}
+
+	public class FakePing : PingStatus
+	{
+		protected override string ServerPath {
+			get { return "192.168.23.12"; }
+		}
+	}
+
 	class Program
 	{
 		static void Main(string[] args) {
