@@ -103,7 +103,7 @@ namespace StatusServer
 						Verify();
 						data = new StatusData();
 					} catch (Exception e) {
-						data = new StatusData(e.Message);
+						data = new StatusData(e.ToString());
 					}
 
 					Log(data);
