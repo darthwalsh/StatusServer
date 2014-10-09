@@ -17,6 +17,7 @@ namespace StatusServer
 	public class StatiModel
 	{
 		public string CurrentTime { get; set; }
+		public string RefeshSeconds { get; set; }
 		public List<StatusModel> Stati { get; set; }
 	}
 
@@ -35,10 +36,17 @@ namespace StatusServer
 
 	public class StatusModule : NancyModule
 	{
+#if DEBUG
+		static readonly TimeSpan refreshEvery = TimeSpan.FromSeconds(3);
+#else
+		static readonly TimeSpan refreshEvery = TimeSpan.FromMinutes(5);
+#endif
+
 		public StatusModule() {
 			Get["/"] = parameters => {
 				var model = new StatiModel {
 					CurrentTime = DateTime.Now.ToString(),
+					RefeshSeconds = Math.Round(refreshEvery.TotalSeconds).ToString(),
 					Stati = Status.All.Values.Select(s => {
 						var data = s.History.First();
 						return new StatusModel {
