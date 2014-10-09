@@ -1,4 +1,4 @@
-StatusServer
+StatusServer  [![NuGet Version](http://img.shields.io/nuget/v/StatusServer.svg?style=flat)](https://www.nuget.org/packages/StatusServer/)
 ============
 
 Display status history in a web site simple .NET web server.
