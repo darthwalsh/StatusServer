@@ -16,6 +16,7 @@ namespace StatusServer
 
 	public class StatiModel
 	{
+		public string CurrentTime { get; set; }
 		public List<StatusModel> Stati { get; set; }
 	}
 
@@ -37,6 +38,7 @@ namespace StatusServer
 		public StatusModule() {
 			Get["/"] = parameters => {
 				var model = new StatiModel {
+					CurrentTime = DateTime.Now.ToString(),
 					Stati = Status.All.Values.Select(s => {
 						var data = s.History.First();
 						return new StatusModel {
