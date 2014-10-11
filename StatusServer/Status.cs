@@ -109,8 +109,6 @@ namespace StatusServer
 						.Where(data => data != null)
 						.OrderBy(data => data.DateTime));
 
-			Log(new StatusData("Initializing... (server just started)"));
-
 			new Thread(() => {
 				while (true) {
 					Thread.Sleep(delay);

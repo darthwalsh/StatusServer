@@ -50,13 +50,13 @@ namespace StatusServer
 					CurrentTime = DateTime.Now.ToString(),
 					RefeshSeconds = Math.Round(refreshEvery.TotalSeconds).ToString(),
 					Stati = Status.All.Values.Select(s => {
-						var data = s.History.First();
+						var first = s.History.FirstOrDefault();
 						return new StatusModel {
 							Name = s.Name,
-							LastPass = s.History.First(h => h.ErrorMessage == null).WhenOrDefault(),
-							LastFail = s.History.First(h => h.ErrorMessage != null).WhenOrDefault(),
-							Color = data.ErrorMessage == null ? "green" : "red",
-							Message = WebUtility.HtmlEncode(data.ErrorMessage ?? ""),
+							LastPass = s.History.FirstOrDefault(h => h.ErrorMessage == null).WhenOrDefault(),
+							LastFail = s.History.FirstOrDefault(h => h.ErrorMessage != null).WhenOrDefault(),
+							Color = first.ColorOrDefault(),
+							Message = WebUtility.HtmlEncode(first.MessageOrDefault()),
 						};
 					}).ToList()
 				};
@@ -114,6 +114,18 @@ namespace StatusServer
 			if (delta.TotalDays < 1.0)
 				return String.Format("{0}h:{1:D2}m", delta.Hours, delta.Minutes);
 			return String.Format("{0}d:{1:D2}h", (int)delta.TotalDays, delta.Hours);
+		}
+
+		public static string MessageOrDefault(this StatusData data) {
+			if (data == null)
+				return "Initializing... (server just started)";
+			return data.ErrorMessage ?? "";
+		}
+
+		public static string ColorOrDefault(this StatusData data) {
+			if (data == null)
+				return "orange";
+			return data.ErrorMessage == null ? "green" : "red";
 		}
 	}
 
