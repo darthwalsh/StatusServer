@@ -63,19 +63,39 @@ namespace StatusServer
 			Get["/details/"] = parameters => {
 				string name = Request.Query.name;
 
+				bool minimized = Request.Query.min;
+
 				var status = Status.All[name];
 
 				var model = new HistoriesModel {
 					Name = status.Name,
-					Histories = status.History.Select(data => new HistoryModel {
-						DateTime = data.DateTime.ToString(),
-						Message = WebUtility.HtmlEncode(data.ErrorMessage ?? ""),
-						Color = data.ErrorMessage == null ? "green" : "red",
+					Histories = (minimized 
+						? status.History.Minimize(MessageComparer.Instance)
+						: status.History)
+						.Select(data => new HistoryModel {
+							DateTime = data.DateTime.ToString(),
+							Message = WebUtility.HtmlEncode(data.ErrorMessage ?? ""),
+							Color = data.ErrorMessage == null ? "green" : "red",
 					}).ToList()
 				};
 
 				return View["details.html", model];
 			};
+		}
+	}
+
+	class MessageComparer : IEqualityComparer<StatusData>
+	{
+		public static readonly MessageComparer Instance = new MessageComparer();
+		
+		MessageComparer() { }
+
+		public bool Equals(StatusData x, StatusData y) {
+			return x.ErrorMessage == y.ErrorMessage;
+		}
+
+		public int GetHashCode(StatusData obj) {
+			return obj.ErrorMessage != null ? obj.ErrorMessage.GetHashCode() : 0;
 		}
 	}
 

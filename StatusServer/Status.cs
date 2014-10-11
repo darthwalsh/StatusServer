@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace StatusServer
 {
-	class StatusData
+	class StatusData : IEquatable<StatusData>
 	{
 		public StatusData(string errorMessage = null) {
 			this.DateTime = DateTime.Now;
@@ -41,6 +41,23 @@ namespace StatusServer
 			} catch {
 				return null;
 			}
+		}
+
+		public override int GetHashCode() {
+			int hash = this.DateTime.GetHashCode();
+			if (this.ErrorMessage != null)
+				hash ^= this.ErrorMessage.GetHashCode();
+			return hash;
+		}
+
+		public override bool Equals(object other) {
+			return Equals(other as StatusData);
+		}
+
+		public bool Equals(StatusData other) {
+			return other != null 
+				&& this.DateTime == other.DateTime
+				&& this.ErrorMessage == other.ErrorMessage;
 		}
 	}
 
@@ -142,5 +159,42 @@ namespace StatusServer
 		public string Name { get; private set; }
 
 		protected abstract void Verify();
+	}
+
+	static class MinimizeExtensions
+	{
+		// Removes duplicates, e.g. 0, 0, 0, 1, 1, 1 becomes 0, 0, 1, 1
+		internal static IEnumerable<T> Minimize<T>(this IEnumerable<T> data, IEqualityComparer<T> comparer) {
+			T past = default(T), present = default(T), future = default(T);
+			using (var it = data.GetEnumerator()) {
+
+				if (!it.MoveNext())
+					yield break;
+				future = it.Current;
+
+				if (!it.MoveNext()) {
+					yield return future;
+					yield break;
+				}
+				present = future;
+				future = it.Current;
+				yield return present;
+
+				while (it.MoveNext()) {
+					past = present;
+					present = future;
+					future = it.Current;
+
+					if (!comparer.Equals(future, present) || !comparer.Equals(present, past))
+						yield return present;
+				}
+			}
+
+			yield return future;
+		}
+			 
+		internal static IEnumerable<T> Minimize<T>(this IEnumerable<T> data) {
+			return data.Minimize(EqualityComparer<T>.Default);
+		}
 	}
 }
