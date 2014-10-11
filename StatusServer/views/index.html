@@ -10,9 +10,17 @@
 <body>
   <p>Current time: @Model.CurrentTime</p>
   <table border="1">
+    <tr>
+      <th>Name</th>
+      <th>Last Pass</th>
+      <th>Last Fail</th>
+      <th>Current Status</th>
+    </tr>
     @Each.Stati
     <tr>
       <td><a style="color:@Current.Color" href="details?name=@Current.Name&min=true">@Current.Name</a></td>
+      <td>@Current.LastPass</td>
+      <td>@Current.LastFail</td>
       <td style="white-space:pre-wrap;">@Current.Message</td>
     </tr>
     @EndEach

@@ -10,8 +10,10 @@ namespace StatusServer
 	public class StatusModel
 	{
 		public string Name { get; set; }
-		public string Message { get; set; }
 		public string Color { get; set; }
+		public string LastPass { get; set; }
+		public string LastFail { get; set; }
+		public string Message { get; set; }
 	}
 
 	public class StatiModel
@@ -51,8 +53,10 @@ namespace StatusServer
 						var data = s.History.First();
 						return new StatusModel {
 							Name = s.Name,
-							Message = WebUtility.HtmlEncode(data.ErrorMessage ?? ""),
+							LastPass = s.History.First(h => h.ErrorMessage == null).WhenOrDefault(),
+							LastFail = s.History.First(h => h.ErrorMessage != null).WhenOrDefault(),
 							Color = data.ErrorMessage == null ? "green" : "red",
+							Message = WebUtility.HtmlEncode(data.ErrorMessage ?? ""),
 						};
 					}).ToList()
 				};
@@ -96,6 +100,20 @@ namespace StatusServer
 
 		public int GetHashCode(StatusData obj) {
 			return obj.ErrorMessage != null ? obj.ErrorMessage.GetHashCode() : 0;
+		}
+	}
+
+	static class StatusDataExtensions
+	{
+		public static string WhenOrDefault(this StatusData data) {
+			if (data == null)
+				return "(never)";
+			var delta = DateTime.Now - data.DateTime;
+			if (delta.TotalHours < 1.0)
+				return String.Format("{0}m", delta.Minutes);
+			if (delta.TotalDays < 1.0)
+				return String.Format("{0}h:{1:D2}m", delta.Hours, delta.Minutes);
+			return String.Format("{0}d:{1:D2}h", (int)delta.TotalDays, delta.Hours);
 		}
 	}
 
