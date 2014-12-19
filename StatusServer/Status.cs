@@ -90,8 +90,20 @@ namespace StatusServer
                 s.Start();
         }
 
-        public static void ShutDown() { 
-            //TODO
+        public static void ShutDown() {
+            foreach (var s in all.Values) {
+                lock (s.padLock) {
+                    s.stop = true;
+                }
+                s.threadWait.Set();
+            }
+
+            foreach (var s in all.Values) {
+                s.thread.Join();
+                s.threadWait.Dispose();
+            }
+
+            all.Clear();
         }
 
         public static void WaitAll() {
@@ -113,7 +125,9 @@ namespace StatusServer
         readonly Thread thread;
         readonly object padLock = new object();
         readonly Queue<Action> finishCallbacks = new Queue<Action>();
-        readonly EventWaitHandle threadWait = new AutoResetEvent(false); //TODO dispose
+        readonly EventWaitHandle threadWait = new AutoResetEvent(false);
+        
+        bool stop = false;
 
 		protected Status()
 			: this(defaultWait) {
@@ -140,6 +154,11 @@ namespace StatusServer
 			this.thread = new Thread(() => {
 				while (true) {
                     threadWait.WaitOne(delay);
+
+                    lock (this.padLock) {
+                        if (this.stop)
+                            break;
+                    }
 
 					StatusData data;
 					try {
