@@ -35,6 +35,9 @@ namespace Example
 
 				Console.WriteLine("Press [Enter] to close");
 				Console.ReadLine();
+
+                Console.WriteLine("Shutting down gracefully...");
+                Status.ShutDown();
 			}
 		}
 	}

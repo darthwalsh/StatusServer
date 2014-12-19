@@ -33,6 +33,9 @@ Simple add some status you care about:
 
 				Console.WriteLine("Press [Enter] to close");
 				Console.ReadLine();
+        
+        Console.WriteLine("Shutting down gracefully...");
+        Status.ShutDown();
 			}
 		}
 	}

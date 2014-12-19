@@ -64,7 +64,7 @@ namespace StatusServer
 	public abstract class Status
 	{
 #if DEBUG
-		static readonly TimeSpan defaultWait = TimeSpan.FromSeconds(1); 
+        static readonly TimeSpan defaultWait = TimeSpan.FromSeconds(1);
 #else
 		static readonly TimeSpan defaultWait = TimeSpan.FromMinutes(5);
 #endif
@@ -84,8 +84,36 @@ namespace StatusServer
 			.Where(t => !t.IsAbstract)
 			.Select(Activator.CreateInstance)
 			.Cast<Status>()
-			.ToDictionary(s => s.Name);
-		}
+            .ToDictionary(s => s.Name);
+
+            foreach (var s in all.Values)
+                s.Start();
+        }
+
+        public static void ShutDown() { 
+            //TODO
+        }
+
+        public static void WaitAll() {
+            using (var e = new CountdownEvent(all.Count)) {
+                foreach (var s in all.Values) {
+                    lock (s.padLock) {
+                        s.finishCallbacks.Enqueue(() => e.Signal());
+                    }
+                }
+
+                foreach (var s in all.Values) {
+                    s.threadWait.Set();
+                }
+
+                e.Wait();
+            }
+        }
+
+        readonly Thread thread;
+        readonly object padLock = new object();
+        readonly Queue<Action> finishCallbacks = new Queue<Action>();
+        readonly EventWaitHandle threadWait = new AutoResetEvent(false); //TODO dispose
 
 		protected Status()
 			: this(defaultWait) {
@@ -109,9 +137,9 @@ namespace StatusServer
 						.Where(data => data != null)
 						.OrderBy(data => data.DateTime));
 
-			new Thread(() => {
+			this.thread = new Thread(() => {
 				while (true) {
-					Thread.Sleep(delay);
+                    threadWait.WaitOne(delay);
 
 					StatusData data;
 					try {
@@ -122,11 +150,20 @@ namespace StatusServer
 					}
 
 					Log(data);
+
+                    lock (this.padLock) {
+                        while (this.finishCallbacks.Any())
+                            this.finishCallbacks.Dequeue()();
+                    }
 				}
 			}) {
 				IsBackground = true
-			}.Start();
+			};
 		}
+
+        void Start() {
+            this.thread.Start();
+        }
 
 		void Log(StatusData data) {
 			this.History = this.History.Push(data);

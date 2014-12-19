@@ -45,24 +45,30 @@ namespace StatusServer
 #endif
 
 		public StatusModule() {
-			Get["/"] = parameters => {
-				var model = new StatiModel {
-					CurrentTime = DateTime.Now.ToString(),
-					RefeshSeconds = Math.Round(refreshEvery.TotalSeconds).ToString(),
-					Stati = Status.All.Values.Select(s => {
-						var first = s.History.FirstOrDefault();
-						return new StatusModel {
-							Name = s.Name,
-							LastPass = s.History.FirstOrDefault(h => h.ErrorMessage == null).WhenOrDefault(),
-							LastFail = s.History.FirstOrDefault(h => h.ErrorMessage != null).WhenOrDefault(),
-							Color = first.ColorOrDefault(),
-							Message = WebUtility.HtmlEncode(first.MessageOrDefault()),
-						};
-					}).ToList()
-				};
+            Get["/"] = parameters => {
+                var model = new StatiModel {
+                    CurrentTime = DateTime.Now.ToString(),
+                    RefeshSeconds = Math.Round(refreshEvery.TotalSeconds).ToString(),
+                    Stati = Status.All.Values.Select(s => {
+                        var first = s.History.FirstOrDefault();
+                        return new StatusModel {
+                            Name = s.Name,
+                            LastPass = s.History.FirstOrDefault(h => h.ErrorMessage == null).WhenOrDefault(),
+                            LastFail = s.History.FirstOrDefault(h => h.ErrorMessage != null).WhenOrDefault(),
+                            Color = first.ColorOrDefault(),
+                            Message = WebUtility.HtmlEncode(first.MessageOrDefault()),
+                        };
+                    }).ToList()
+                };
 
-				return View["index.html", model];
-			};
+                return View["index.html", model];
+            };
+
+            Post["/index.html"] = parameters => {
+                Status.WaitAll();
+
+                return Response.AsRedirect("/");
+            };
 
 			Get["/details/"] = parameters => {
 				string name = Request.Query.name;
@@ -109,11 +115,11 @@ namespace StatusServer
 			if (data == null)
 				return "(never)";
 			var delta = DateTime.Now - data.DateTime;
-			if (delta.TotalHours < 1.0)
-				return String.Format("{0}m", delta.Minutes);
-			if (delta.TotalDays < 1.0)
-				return String.Format("{0}h:{1:D2}m", delta.Hours, delta.Minutes);
-			return String.Format("{0}d:{1:D2}h", (int)delta.TotalDays, delta.Hours);
+            if (delta.TotalHours < 1.0)
+                return String.Format("{0}m", delta.Minutes);
+            if (delta.TotalDays < 1.0)
+                return String.Format("{0}h:{1:D2}m", delta.Hours, delta.Minutes);
+            return String.Format("{0}d:{1:D2}h", (int)delta.TotalDays, delta.Hours);
 		}
 
 		public static string MessageOrDefault(this StatusData data) {
