@@ -149,14 +149,16 @@ namespace StatusServer
 			this.Name = name;
 
 			this.History = ImmutableStack<StatusData>.Empty;
-			var saved = new List<StatusData>();
-			if (Directory.Exists(StatusServerPath))
-				this.History = ImmutableStack<StatusData>.New(
-					Directory.EnumerateFiles(StatusServerPath, this.Name + ".txt", SearchOption.AllDirectories)
-						.SelectMany(File.ReadAllLines)
-						.Select(StatusData.TryDeserialize)
-						.Where(data => data != null)
-						.OrderBy(data => data.DateTime));
+            if (Directory.Exists(StatusServerPath)) {
+                this.History = ImmutableStack<StatusData>.New(
+                    Directory.EnumerateFiles(StatusServerPath, this.Name + ".txt", SearchOption.AllDirectories)
+                        .SelectMany(File.ReadAllLines)
+                        .Select(StatusData.TryDeserialize)
+                        .Where(data => data != null)
+                        .OrderBy(data => data.DateTime));
+            }
+
+            int passedCount = this.History.Where(data => data.ErrorMessage == null).Count();
 
 			this.thread = new Thread(() => {
 				while (true) {
@@ -171,8 +173,11 @@ namespace StatusServer
 					try {
 						Verify();
 						data = new StatusData();
+                        ++passedCount;
 					} catch (Exception e) {
 						data = new StatusData(e.ToString());
+                        OnFailure(passedCount);
+                        passedCount = 0;
 					}
 
 					Log(data);
@@ -198,7 +203,7 @@ namespace StatusServer
 			}
 		}
 
-		static string StatusServerPath {
+		internal static string StatusServerPath {
 			get {
 				return Path.Combine(
 					Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -206,7 +211,7 @@ namespace StatusServer
 			}
 		}
 
-		string SavePath {
+		internal string SavePath {
 			get {
 				var dir = Path.Combine(StatusServerPath,
 					DateTime.Now.ToString("yyyy-MM-dd"));
@@ -220,6 +225,9 @@ namespace StatusServer
 		public string Name { get; private set; }
 
 		protected abstract void Verify();
+
+        protected virtual void OnFailure(int previouslyPassed) {
+        }
 	}
 
 	static class MinimizeExtensions
