@@ -69,7 +69,7 @@ namespace StatusServer
 		static readonly TimeSpan defaultWait = TimeSpan.FromMinutes(5);
 #endif
 
-		static Dictionary<string, Status> all;
+        static Dictionary<string, Status> all;
 
 		internal static Dictionary<string, Status> All {
 			get {
@@ -77,33 +77,40 @@ namespace StatusServer
 			}
 		}
 
-		public static void Initialize() {
-			all = AppDomain.CurrentDomain.GetAssemblies()
-			.SelectMany(a => a.GetTypes())
-			.Where(t => t.IsSubclassOf(typeof(Status)))
-			.Where(t => !t.IsAbstract)
-			.Select(Activator.CreateInstance)
-			.Cast<Status>()
-            .ToDictionary(s => s.Name);
+        public static void Initialize(IEnumerable<Status> stati) {
+            if (all != null) {
+                throw new Exception("All ready Intialized!");
+            }
+            all = stati.ToDictionary(s => s.Name);
 
             foreach (var s in all.Values)
                 s.Start();
         }
 
+		public static void Initialize() {
+            Initialize(AppDomain.CurrentDomain.GetAssemblies()
+			.SelectMany(a => a.GetTypes())
+			.Where(t => t.IsSubclassOf(typeof(Status)))
+			.Where(t => !t.IsAbstract)
+			.Select(Activator.CreateInstance)
+			.Cast<Status>());
+        }
+
         public static void ShutDown() {
-            foreach (var s in all.Values) {
+            List<Status> toDispose = all.Values.ToList();
+            all = null;
+
+            foreach (var s in toDispose) {
                 lock (s.padLock) {
                     s.stop = true;
                 }
                 s.threadWait.Set();
             }
 
-            foreach (var s in all.Values) {
+            foreach (var s in toDispose) {
                 s.thread.Join();
                 s.threadWait.Dispose();
             }
-
-            all.Clear();
         }
 
         public static void WaitAll() {
@@ -125,7 +132,7 @@ namespace StatusServer
         readonly Thread thread;
         readonly object padLock = new object();
         readonly Queue<Action> finishCallbacks = new Queue<Action>();
-        readonly EventWaitHandle threadWait = new AutoResetEvent(false);
+        readonly EventWaitHandle threadWait = new AutoResetEvent(true);
         
         bool stop = false;
 
