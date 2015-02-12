@@ -57,14 +57,12 @@ namespace Tests
         {
             readonly EventWaitHandle pauser;
             readonly EventWaitHandle starter;
-            readonly Action<int> onFailure;
 
-            public ControllableStatus(EventWaitHandle pauser, EventWaitHandle starter, Action<int> onFailure)
+            public ControllableStatus(EventWaitHandle pauser, EventWaitHandle starter)
                 : base(small)
             {
                 this.pauser = pauser;
                 this.starter = starter;
-                this.onFailure = onFailure;
 
                 this.Pass = true;
             }
@@ -79,12 +77,6 @@ namespace Tests
 
                 this.starter.Set();
             }
-
-            protected override void OnFailure(int previouslyPassed) {
-                this.onFailure(previouslyPassed);
-
-                this.starter.Set();
-            }
         }
 
         [TestMethod]
@@ -94,8 +86,18 @@ namespace Tests
                 const int MAGIC = -55;
 
                 int fails = MAGIC;
+                Action<Status, int> onFailure = (s, f) => { 
+                    fails = f;
+                    starter.Set();
+                };
+
+                Status.OnFailure += onFailure;
+                
                 var dir = Path.Combine(Status.StatusServerPath, DateTime.Now.ToString("yyyy-MM-dd"));
+
+                Directory.Delete(Status.StatusServerPath, recursive: true);
                 Directory.CreateDirectory(dir);
+
                 dir = Path.Combine(dir, typeof(ControllableStatus).Name + ".txt");
 
                 File.WriteAllText(dir, "");
@@ -105,7 +107,7 @@ namespace Tests
                     writer.WriteLine(new StatusData().Serialize());
                 }
 
-                var status = new ControllableStatus(pauser, starter, f => { fails = f; });
+                var status = new ControllableStatus(pauser, starter);
 
                 Status.Initialize(new[] { status });
 
@@ -141,6 +143,8 @@ namespace Tests
                 starter.WaitOne();
 
                 Assert.AreEqual(1, fails);
+
+                Status.OnFailure -= onFailure;
 
                 Status.ShutDown();
             }

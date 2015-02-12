@@ -113,6 +113,8 @@ namespace StatusServer
             }
         }
 
+        public static event Action<Status, int> OnFailure = delegate { };
+
         public static void WaitAll() {
             using (var e = new CountdownEvent(all.Count)) {
                 foreach (var s in all.Values) {
@@ -176,7 +178,7 @@ namespace StatusServer
                         ++passedCount;
 					} catch (Exception e) {
 						data = new StatusData(e.ToString());
-                        OnFailure(passedCount);
+                        OnFailure(this, passedCount);
                         passedCount = 0;
 					}
 
@@ -225,9 +227,6 @@ namespace StatusServer
 		public string Name { get; private set; }
 
 		protected abstract void Verify();
-
-        protected virtual void OnFailure(int previouslyPassed) {
-        }
 	}
 
 	static class MinimizeExtensions
