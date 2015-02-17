@@ -160,7 +160,7 @@ namespace StatusServer
                         .OrderBy(data => data.DateTime));
             }
 
-            int passedCount = this.History.Where(data => data.ErrorMessage == null).Count();
+            int passedCount = this.History.TakeWhile(data => data.ErrorMessage == null).Count();
 
 			this.thread = new Thread(() => {
 				while (true) {

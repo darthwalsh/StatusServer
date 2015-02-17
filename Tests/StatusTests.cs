@@ -105,6 +105,8 @@ namespace Tests
                 using (var writer = new StreamWriter(dir, append: true)) {
                     writer.WriteLine(new StatusData("failure").Serialize());
                     writer.WriteLine(new StatusData().Serialize());
+                    writer.WriteLine(new StatusData("failure").Serialize());
+                    writer.WriteLine(new StatusData().Serialize());
                 }
 
                 var status = new ControllableStatus(pauser, starter);
