@@ -6,7 +6,13 @@ using System.Threading;
 
 namespace StatusServer
 {
-	class StatusData : IEquatable<StatusData>
+    public interface IData
+    {
+        string ErrorMessage { get; }
+        bool HadError { get; }
+    }
+
+	class StatusData : IEquatable<StatusData>, IData
 	{
 		public StatusData(string errorMessage = null) {
 			this.DateTime = DateTime.Now;
@@ -15,6 +21,7 @@ namespace StatusServer
 
 		public DateTime DateTime { get; private set; }
 		public string ErrorMessage { get; private set; }
+        public bool HadError { get { return this.ErrorMessage != null; } }
 
 		public string Serialize() {
 			string result = "" + this.DateTime.Ticks;
@@ -113,7 +120,7 @@ namespace StatusServer
             }
         }
 
-        public static event Action<Status, int> OnFailure = delegate { };
+        public static event Action<Status> OnFailure = delegate { };
 
         public static void WaitAll() {
             using (var e = new CountdownEvent(all.Count)) {
@@ -160,9 +167,7 @@ namespace StatusServer
                         .OrderBy(data => data.DateTime));
             }
 
-            int passedCount = this.History.TakeWhile(data => data.ErrorMessage == null).Count();
-
-			this.thread = new Thread(() => {
+            this.thread = new Thread(() => {
 				while (true) {
                     threadWait.WaitOne(delay);
 
@@ -175,14 +180,14 @@ namespace StatusServer
 					try {
 						Verify();
 						data = new StatusData();
-                        ++passedCount;
 					} catch (Exception e) {
 						data = new StatusData(e.ToString());
-                        OnFailure(this, passedCount);
-                        passedCount = 0;
 					}
 
 					Log(data);
+                    if (data.HadError) {
+                        OnFailure(this);
+                    }
 
                     lock (this.padLock) {
                         while (this.finishCallbacks.Any())
@@ -223,6 +228,8 @@ namespace StatusServer
 		}
 		
 		internal IStack<StatusData> History { get; private set; }
+
+        public IEnumerable<IData> ErrorHistory { get { return this.History; } }
 
 		public string Name { get; private set; }
 

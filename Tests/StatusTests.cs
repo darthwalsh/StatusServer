@@ -83,11 +83,20 @@ namespace Tests
         public void TestOnFailure() {
             using (EventWaitHandle pauser = new AutoResetEvent(false))
             using (EventWaitHandle starter = new AutoResetEvent(false)) {
-                const int MAGIC = -55;
+                List<string> expected = new List<string> { null, "failure2", null, "failure1" };
 
-                int fails = MAGIC;
-                Action<Status, int> onFailure = (s, f) => { 
-                    fails = f;
+                string[] fails = null;
+                
+                Action<Status> onFailure = s => {
+                    fails = s.ErrorHistory.Select(d => {
+                        string m = d.ErrorMessage;
+                        if (m == null)
+                            return null;
+                        m = m.Substring(m.IndexOf(':') + 2);
+                        m = m.Substring(0, m.IndexOf('\r'));
+                        return m;
+                    }).ToArray();
+                    
                     starter.Set();
                 };
 
@@ -103,9 +112,9 @@ namespace Tests
                 File.WriteAllText(dir, "");
 
                 using (var writer = new StreamWriter(dir, append: true)) {
-                    writer.WriteLine(new StatusData("failure").Serialize());
+                    writer.WriteLine(new StatusData("Exception: failure1\r\n").Serialize());
                     writer.WriteLine(new StatusData().Serialize());
-                    writer.WriteLine(new StatusData("failure").Serialize());
+                    writer.WriteLine(new StatusData("Exception2: failure2\r\n").Serialize());
                     writer.WriteLine(new StatusData().Serialize());
                 }
 
@@ -115,36 +124,37 @@ namespace Tests
 
                 pauser.Set();
                 starter.WaitOne();
-
-                Assert.AreEqual(MAGIC, fails);
+                Assert.IsNull(fails);
 
                 status.Pass = false;
 
                 pauser.Set();
                 starter.WaitOne();
+                expected.Insert(0, null);
+                expected.Insert(0, "failure!");
 
-                Assert.AreEqual(2, fails);
-                fails = MAGIC;
-
+                CollectionAssert.AreEqual(expected, fails);
+                
                 pauser.Set();
                 starter.WaitOne();
+                expected.Insert(0, "failure!");
 
-                Assert.AreEqual(0, fails);
-                fails = MAGIC;
+                CollectionAssert.AreEqual(expected, fails);
 
                 status.Pass = true;
 
                 pauser.Set();
                 starter.WaitOne();
-
-                Assert.AreEqual(MAGIC, fails);
-
+                
+                CollectionAssert.AreEqual(expected, fails);
                 status.Pass = false;
 
                 pauser.Set();
                 starter.WaitOne();
+                expected.Insert(0, null);
+                expected.Insert(0, "failure!");
 
-                Assert.AreEqual(1, fails);
+                CollectionAssert.AreEqual(expected, fails);
 
                 Status.OnFailure -= onFailure;
 

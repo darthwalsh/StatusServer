@@ -53,8 +53,8 @@ namespace StatusServer
                         var first = s.History.FirstOrDefault();
                         return new StatusModel {
                             Name = s.Name,
-                            LastPass = s.History.FirstOrDefault(h => h.ErrorMessage == null).WhenOrDefault(),
-                            LastFail = s.History.FirstOrDefault(h => h.ErrorMessage != null).WhenOrDefault(),
+                            LastPass = s.History.FirstOrDefault(h => !h.HadError).WhenOrDefault(),
+                            LastFail = s.History.FirstOrDefault(h => h.HadError).WhenOrDefault(),
                             Color = first.ColorOrDefault(),
                             Message = WebUtility.HtmlEncode(first.MessageOrDefault()),
                         };
@@ -85,7 +85,7 @@ namespace StatusServer
 						.Select(data => new HistoryModel {
 							DateTime = data.DateTime.ToString(),
 							Message = WebUtility.HtmlEncode(data.ErrorMessage ?? ""),
-							Color = data.ErrorMessage == null ? "green" : "red",
+                            Color = data.HadError ? "red" : "green",
 					}).ToList()
 				};
 
@@ -131,7 +131,7 @@ namespace StatusServer
 		public static string ColorOrDefault(this StatusData data) {
 			if (data == null)
 				return "orange";
-			return data.ErrorMessage == null ? "green" : "red";
+            return data.HadError ? "red" : "green";
 		}
 	}
 
