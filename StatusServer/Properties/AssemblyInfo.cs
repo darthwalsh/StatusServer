@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("Status dashboard web server")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Carl Walsh")]
-[assembly: AssemblyProduct("StatusServer https://github.com/darth-walsh/StatusServer")]
+[assembly: AssemblyProduct("StatusServer https://github.com/darthwalsh/StatusServer")]
 [assembly: AssemblyCopyright("Copyright ©  2014 - License: MIT")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
