@@ -104,6 +104,10 @@ namespace StatusServer
         }
 
         public static void ShutDown() {
+            if (all == null) {
+                return;
+            }
+
             List<Status> toDispose = all.Values.ToList();
             all = null;
 
@@ -111,12 +115,13 @@ namespace StatusServer
                 lock (s.padLock) {
                     s.stop = true;
                 }
-                s.threadWait.Set();
+                s.verifyWait.Set();
             }
 
             foreach (var s in toDispose) {
-                s.thread.Join();
-                s.threadWait.Dispose();
+                s.verifyThread.Join();
+                s.hungThread.Join();
+                s.verifyWait.Dispose();
             }
         }
 
@@ -131,18 +136,23 @@ namespace StatusServer
                 }
 
                 foreach (var s in all.Values) {
-                    s.threadWait.Set();
+                    s.verifyWait.Set();
                 }
 
                 e.Wait();
             }
         }
 
-        readonly Thread thread;
         readonly object padLock = new object();
-        readonly Queue<Action> finishCallbacks = new Queue<Action>();
-        readonly EventWaitHandle threadWait = new AutoResetEvent(true);
         
+        readonly Thread verifyThread;
+        readonly EventWaitHandle verifyWait = new AutoResetEvent(true);
+
+        readonly Thread hungThread;
+        readonly EventWaitHandle hungWait = new AutoResetEvent(true);
+
+        readonly Queue<Action> finishCallbacks = new Queue<Action>();
+
         bool stop = false;
 
 		protected Status()
@@ -167,9 +177,9 @@ namespace StatusServer
                         .OrderBy(data => data.DateTime));
             }
 
-            this.thread = new Thread(() => {
+            this.verifyThread = new Thread(() => {
 				while (true) {
-                    threadWait.WaitOne(delay);
+                    verifyWait.WaitOne(delay);
 
                     lock (this.padLock) {
                         if (this.stop)
@@ -179,7 +189,7 @@ namespace StatusServer
 					StatusData data;
 					try {
 						Verify();
-						data = new StatusData();
+                        data = new StatusData();
 					} catch (Exception e) {
 						data = new StatusData(e.ToString());
 					}
@@ -196,18 +206,52 @@ namespace StatusServer
 				}
 			}) {
 				IsBackground = true
-			};
+            };
+
+            TimeSpan hungDelay = delay + delay + TimeSpan.FromSeconds(2);
+            this.hungThread = new Thread(() => {
+                while (true) {
+                    hungWait.WaitOne(hungDelay);
+
+                    lock (this.padLock) {
+                        if (this.stop)
+                            break;
+                    }
+
+                    StatusData first = this.History.FirstOrDefault();
+                    if (first == null) {
+                        continue;
+                    }
+
+                    TimeSpan lastResult = DateTime.Now - first.DateTime;
+
+                    if (lastResult > hungDelay) {
+                        Log(new StatusData("Evaluation didn't finish within exected time."));
+                        OnFailure(this);
+                    }
+
+                    lock (this.padLock) {
+                        while (this.finishCallbacks.Any())
+                            this.finishCallbacks.Dequeue()();
+                    }
+                }
+            }) {
+                IsBackground = true
+            };
 		}
 
         void Start() {
-            this.thread.Start();
+            this.verifyThread.Start();
+            this.hungThread.Start();
         }
 
 		void Log(StatusData data) {
-			this.History = this.History.Push(data);
-			using (var writer = new StreamWriter(this.SavePath, append: true)) {
-				writer.WriteLine(data.Serialize());
-			}
+            lock (this.padLock) {
+                this.History = this.History.Push(data);
+                using (var writer = new StreamWriter(this.SavePath, append: true)) {
+                    writer.WriteLine(data.Serialize());
+                } 
+            }
 		}
 
 		internal static string StatusServerPath {

@@ -15,6 +15,19 @@ namespace Tests
         static readonly TimeSpan medium = small + small;
         static readonly TimeSpan large = medium + medium;
 
+        static string dir = Path.Combine(Status.StatusServerPath, DateTime.Now.ToString("yyyy-MM-dd"));
+
+        [TestInitialize]
+        public void TestInitialize() {
+            Directory.Delete(Status.StatusServerPath, recursive: true);
+            Directory.CreateDirectory(dir);
+        }
+
+        [TestCleanup]
+        public void TestCleanup() {
+            Status.ShutDown();
+        }
+
         class DummyStatus : Status
         {
             readonly Action signal;
@@ -49,8 +62,6 @@ namespace Tests
             Thread.Sleep(small);
 
             Assert.IsTrue(signaled, "signaled after");
-
-            Status.ShutDown();
 		}
 
         class ControllableStatus : Status
@@ -70,7 +81,7 @@ namespace Tests
             public bool Pass { get; set; }
 
             protected override void Verify() {
-                pauser.WaitOne();
+                this.pauser.WaitOne();
                 if (!this.Pass) {
                     throw new Exception("failure!");
                 }
@@ -100,65 +111,110 @@ namespace Tests
                     starter.Set();
                 };
 
-                Status.OnFailure += onFailure;
-                
-                var dir = Path.Combine(Status.StatusServerPath, DateTime.Now.ToString("yyyy-MM-dd"));
+                try {
+                    Status.OnFailure += onFailure;
 
-                Directory.Delete(Status.StatusServerPath, recursive: true);
-                Directory.CreateDirectory(dir);
+                    dir = Path.Combine(dir, typeof(ControllableStatus).Name + ".txt");
 
-                dir = Path.Combine(dir, typeof(ControllableStatus).Name + ".txt");
+                    File.WriteAllText(dir, "");
 
-                File.WriteAllText(dir, "");
+                    using (var writer = new StreamWriter(dir, append: true)) {
+                        writer.WriteLine(new StatusData("Exception: failure1\r\n").Serialize());
+                        writer.WriteLine(new StatusData().Serialize());
+                        writer.WriteLine(new StatusData("Exception2: failure2\r\n").Serialize());
+                        writer.WriteLine(new StatusData().Serialize());
+                    }
 
-                using (var writer = new StreamWriter(dir, append: true)) {
-                    writer.WriteLine(new StatusData("Exception: failure1\r\n").Serialize());
-                    writer.WriteLine(new StatusData().Serialize());
-                    writer.WriteLine(new StatusData("Exception2: failure2\r\n").Serialize());
-                    writer.WriteLine(new StatusData().Serialize());
+                    var status = new ControllableStatus(pauser, starter);
+
+                    Status.Initialize(new[] { status });
+
+                    pauser.Set();
+                    starter.WaitOne();
+                    Assert.IsNull(fails);
+
+                    status.Pass = false;
+
+                    pauser.Set();
+                    starter.WaitOne();
+                    expected.Insert(0, null);
+                    expected.Insert(0, "failure!");
+
+                    CollectionAssert.AreEqual(expected, fails);
+
+                    pauser.Set();
+                    starter.WaitOne();
+                    expected.Insert(0, "failure!");
+
+                    CollectionAssert.AreEqual(expected, fails);
+
+                    status.Pass = true;
+
+                    pauser.Set();
+                    starter.WaitOne();
+
+                    CollectionAssert.AreEqual(expected, fails);
+                    status.Pass = false;
+
+                    pauser.Set();
+                    starter.WaitOne();
+                    expected.Insert(0, null);
+                    expected.Insert(0, "failure!");
+
+                    CollectionAssert.AreEqual(expected, fails);
+                } finally {
+                    Status.OnFailure -= onFailure;
                 }
+            }
+        }
 
-                var status = new ControllableStatus(pauser, starter);
+        class AnotherControllable : ControllableStatus
+        {
+            public AnotherControllable(EventWaitHandle pauser, EventWaitHandle starter)
+                : base(pauser, starter) { }
+        }
 
-                Status.Initialize(new[] { status });
+        [TestMethod]
+        public void TestDelay() {
+            using (EventWaitHandle pauser = new ManualResetEvent(false))
+            using (EventWaitHandle starter = new AutoResetEvent(false)) {
+                List<string> expected = new List<string>();
 
-                pauser.Set();
-                starter.WaitOne();
-                Assert.IsNull(fails);
+                bool wasFailure = false;
+                Action<Status> onFailure = s => {
+                    wasFailure = true;
+                    starter.Set();
+                };
 
-                status.Pass = false;
+                try {
+                    Status.OnFailure += onFailure;
 
-                pauser.Set();
-                starter.WaitOne();
-                expected.Insert(0, null);
-                expected.Insert(0, "failure!");
+                    var status = new AnotherControllable(pauser, starter);
 
-                CollectionAssert.AreEqual(expected, fails);
-                
-                pauser.Set();
-                starter.WaitOne();
-                expected.Insert(0, "failure!");
+                    Status.Initialize(new[] { status });
 
-                CollectionAssert.AreEqual(expected, fails);
+                    pauser.Set();
 
-                status.Pass = true;
+                    for (int i = 0; i < 5; ++i) {
+                        starter.WaitOne();
+                        Assert.IsFalse(wasFailure, "Without delay");
+                    }
 
-                pauser.Set();
-                starter.WaitOne();
-                
-                CollectionAssert.AreEqual(expected, fails);
-                status.Pass = false;
+                    pauser.Reset();
 
-                pauser.Set();
-                starter.WaitOne();
-                expected.Insert(0, null);
-                expected.Insert(0, "failure!");
+                    starter.WaitOne();
+                    Assert.IsTrue(wasFailure, "Delay");
+                    wasFailure = false;
 
-                CollectionAssert.AreEqual(expected, fails);
+                    pauser.Set();
 
-                Status.OnFailure -= onFailure;
-
-                Status.ShutDown();
+                    for (int i = 0; i < 5; ++i) {
+                        starter.WaitOne();
+                        Assert.IsFalse(wasFailure, "Without delay");
+                    }
+                } finally {
+                    Status.OnFailure -= onFailure;
+                }
             }
         }
 	}
