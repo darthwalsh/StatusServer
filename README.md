@@ -6,7 +6,7 @@ Display status history in a web site simple .NET web server.
 Simple add some status you care about:
 
 
-```
+```C#
 	public class MyStatus : Status
 	{
 		protected override void Verify() {
@@ -34,8 +34,8 @@ Simple add some status you care about:
 				Console.WriteLine("Press [Enter] to close");
 				Console.ReadLine();
         
-        Console.WriteLine("Shutting down gracefully...");
-        Status.ShutDown();
+				Console.WriteLine("Shutting down gracefully...");
+				Status.ShutDown();
 			}
 		}
 	}
