@@ -15,12 +15,14 @@ namespace Tests
         static readonly TimeSpan medium = small + small;
         static readonly TimeSpan large = medium + medium;
 
-        static string dir = Path.Combine(Status.StatusServerPath, DateTime.Now.ToString("yyyy-MM-dd"));
+        static string TodayFolder = Path.Combine(Status.StatusServerPath, DateTime.Now.ToString("yyyy-MM-dd"));
 
         [TestInitialize]
         public void TestInitialize() {
-            Directory.Delete(Status.StatusServerPath, recursive: true);
-            Directory.CreateDirectory(dir);
+            try {
+                Directory.Delete(Status.StatusServerPath, recursive: true);
+            } catch (DirectoryNotFoundException) { }
+            Directory.CreateDirectory(TodayFolder);
         }
 
         [TestCleanup]
@@ -114,11 +116,11 @@ namespace Tests
                 try {
                     Status.OnFailure += onFailure;
 
-                    dir = Path.Combine(dir, typeof(ControllableStatus).Name + ".txt");
+                    string statusFolder = Path.Combine(TodayFolder, typeof(ControllableStatus).Name + ".txt");
 
-                    File.WriteAllText(dir, "");
+                    File.WriteAllText(statusFolder, "");
 
-                    using (var writer = new StreamWriter(dir, append: true)) {
+                    using (var writer = new StreamWriter(statusFolder, append: true)) {
                         writer.WriteLine(new StatusData("Exception: failure1\r\n").Serialize());
                         writer.WriteLine(new StatusData().Serialize());
                         writer.WriteLine(new StatusData("Exception2: failure2\r\n").Serialize());
@@ -205,6 +207,42 @@ namespace Tests
                     starter.WaitOne();
                     Assert.IsTrue(wasFailure, "Delay");
                     wasFailure = false;
+
+                    pauser.Set();
+
+                    for (int i = 0; i < 5; ++i) {
+                        starter.WaitOne();
+                        Assert.IsFalse(wasFailure, "Without delay");
+                    }
+                } finally {
+                    Status.OnFailure -= onFailure;
+                }
+            }
+        }
+
+        [TestMethod]
+        public void TestOldDelay() {
+            using (EventWaitHandle pauser = new ManualResetEvent(false))
+            using (EventWaitHandle starter = new AutoResetEvent(false)) {
+                List<string> expected = new List<string>();
+
+                bool wasFailure = false;
+                Action<Status> onFailure = s => wasFailure = true;
+
+                try {
+                    Status.OnFailure += onFailure;
+
+                    string statusFolder = Path.Combine(TodayFolder, typeof(ControllableStatus).Name + ".txt");
+
+                    File.WriteAllText(statusFolder, "");
+
+                    using (var writer = new StreamWriter(statusFolder, append: true)) {
+                        writer.WriteLine((DateTime.Now - TimeSpan.FromDays(1)).Ticks.ToString());
+                    }
+
+                    var status = new ControllableStatus(pauser, starter);
+
+                    Status.Initialize(new[] { status });
 
                     pauser.Set();
 

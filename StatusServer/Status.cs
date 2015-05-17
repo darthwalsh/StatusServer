@@ -209,6 +209,7 @@ namespace StatusServer
             };
 
             TimeSpan hungDelay = delay + delay + TimeSpan.FromSeconds(2);
+            DateTime hangIgnored = DateTime.Now + hungDelay;
             this.hungThread = new Thread(() => {
                 while (true) {
                     hungWait.WaitOne(hungDelay);
@@ -223,16 +224,13 @@ namespace StatusServer
                         continue;
                     }
 
-                    TimeSpan lastResult = DateTime.Now - first.DateTime;
+                    DateTime now = DateTime.Now;
 
-                    if (lastResult > hungDelay) {
+                    TimeSpan lastResult = now - first.DateTime;
+
+                    if (lastResult > hungDelay && now > hangIgnored) {
                         Log(new StatusData("Evaluation didn't finish within exected time."));
                         OnFailure(this);
-                    }
-
-                    lock (this.padLock) {
-                        while (this.finishCallbacks.Any())
-                            this.finishCallbacks.Dequeue()();
                     }
                 }
             }) {
