@@ -76,7 +76,7 @@ namespace StatusServer
 		static readonly TimeSpan defaultWait = TimeSpan.FromMinutes(5);
 #endif
 
-        static Dictionary<string, Status> all;
+        static Dictionary<string, Status> all = new Dictionary<string,Status>();
 
 		internal static Dictionary<string, Status> All {
 			get {
@@ -85,7 +85,7 @@ namespace StatusServer
 		}
 
         public static void Initialize(IEnumerable<Status> stati) {
-            if (all != null) {
+            if (all.Any()) {
                 throw new Exception("All ready Intialized!");
             }
             all = stati.ToDictionary(s => s.Name);
@@ -104,25 +104,14 @@ namespace StatusServer
         }
 
         public static void ShutDown() {
-            if (all == null) {
-                return;
-            }
-
             List<Status> toDispose = all.Values.ToList();
-            all = null;
+            all = new Dictionary<string,Status>();
 
-            foreach (var s in toDispose) {
-                lock (s.padLock) {
-                    s.stop = true;
-                }
-                s.verifyWait.Set();
-            }
+            foreach (var s in toDispose)
+                s.Stop();
 
-            foreach (var s in toDispose) {
-                s.verifyThread.Join();
-                s.hungThread.Join();
-                s.verifyWait.Dispose();
-            }
+            foreach (var s in toDispose)
+                s.Join();
         }
 
         public static event Action<Status> OnFailure = delegate { };
@@ -154,12 +143,14 @@ namespace StatusServer
         readonly Queue<Action> finishCallbacks = new Queue<Action>();
 
         bool stop = false;
+        readonly TimeSpan delay;
 
 		protected Status()
 			: this(defaultWait) {
 		}
 
-		protected Status(TimeSpan delay) {
+		protected Status(TimeSpan d) {
+            this.delay = d;
 			string name = GetType().Name;
 			
 			if (!name.All(char.IsLetterOrDigit) || name.Length == 0)
@@ -179,7 +170,7 @@ namespace StatusServer
 
             this.verifyThread = new Thread(() => {
 				while (true) {
-                    verifyWait.WaitOne(delay);
+                    verifyWait.WaitOne(this.delay);
 
                     lock (this.padLock) {
                         if (this.stop)
@@ -208,7 +199,7 @@ namespace StatusServer
 				IsBackground = true
             };
 
-            TimeSpan hungDelay = delay + delay + TimeSpan.FromSeconds(2);
+            TimeSpan hungDelay = this.delay + this.delay + TimeSpan.FromSeconds(2);
             DateTime hangIgnored = DateTime.Now + hungDelay;
             this.hungThread = new Thread(() => {
                 while (true) {
@@ -241,6 +232,26 @@ namespace StatusServer
         void Start() {
             this.verifyThread.Start();
             this.hungThread.Start();
+        }
+
+        void Stop() {
+            lock (this.padLock) {
+                this.stop = true;
+            }
+            this.verifyWait.Set();
+            //TODO missing? this.hungWait.Set();
+        }
+
+        void Join() {
+            TimeSpan printDelay = new TimeSpan(100);
+            if (!this.verifyThread.Join(printDelay)) {
+                Console.WriteLine("Waiting for {0} verify", this.Name);
+                this.verifyThread.Join();
+            }
+            if (!this.hungThread.Join(printDelay)) {
+                Console.WriteLine("Waiting for {0} hung", this.Name);
+                this.hungThread.Join();
+            }
         }
 
 		void Log(StatusData data) {
