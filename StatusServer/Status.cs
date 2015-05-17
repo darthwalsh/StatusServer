@@ -239,7 +239,7 @@ namespace StatusServer
                 this.stop = true;
             }
             this.verifyWait.Set();
-            //TODO missing? this.hungWait.Set();
+            this.hungWait.Set();
         }
 
         void Join() {
