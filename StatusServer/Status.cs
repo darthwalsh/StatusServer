@@ -199,11 +199,10 @@ namespace StatusServer
 				IsBackground = true
             };
 
-            TimeSpan hungDelay = this.delay + this.delay + TimeSpan.FromSeconds(2);
-            DateTime hangIgnored = DateTime.Now + hungDelay;
+            DateTime startedAt = DateTime.Now;
             this.hungThread = new Thread(() => {
                 while (true) {
-                    hungWait.WaitOne(hungDelay);
+                    hungWait.WaitOne(this.HangDelay);
 
                     lock (this.padLock) {
                         if (this.stop)
@@ -219,7 +218,7 @@ namespace StatusServer
 
                     TimeSpan lastResult = now - first.DateTime;
 
-                    if (lastResult > hungDelay && now > hangIgnored) {
+                    if (lastResult > this.HangDelay && now > (startedAt + this.HangDelay)) {
                         Log(new StatusData("Evaluation didn't finish within exected time."));
                         OnFailure(this);
                     }
@@ -287,6 +286,12 @@ namespace StatusServer
 		public string Name { get; private set; }
 
 		protected abstract void Verify();
+
+        protected virtual TimeSpan HangDelay {
+            get {
+                return this.delay + this.delay + TimeSpan.FromSeconds(2);
+            }
+        }
 	}
 
 	static class MinimizeExtensions
