@@ -55,3 +55,11 @@ and you're running a web server!
 </table>
 
 
+Buidling it
+===========
+
+```
+	git clone https://github.com/darthwalsh/StatusServer
+	nuget restore
+	msbuild
+```
