@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,17 +26,21 @@ namespace Example
 
 	class Program
 	{
-		static void Main(string[] args) {
+        private const string url = "http://localhost:8080";
+
+        static void Main(string[] args) {
             Status.Cleanup(TimeSpan.FromDays(100));
 
 			Status.Initialize();
 
 			using (NancyHost host = new NancyHost(
 				new HostConfiguration { RewriteLocalhost = false },
-				new Uri("http://localhost:8080"))) {
+				new Uri(url))) {
 				host.Start();
 
 				Console.WriteLine("Press [Enter] to close");
+
+                Process.Start(url);
 				Console.ReadLine();
 
                 Console.WriteLine("Shutting down gracefully...");
