@@ -26,6 +26,8 @@ namespace Example
 	class Program
 	{
 		static void Main(string[] args) {
+            Status.Cleanup(TimeSpan.FromDays(100));
+
 			Status.Initialize();
 
 			using (NancyHost host = new NancyHost(

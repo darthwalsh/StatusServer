@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -83,6 +84,19 @@ namespace StatusServer
 				return all;
 			}
 		}
+
+        public static void Cleanup(TimeSpan timespan) {
+            Directory.CreateDirectory(StatusServerPath);
+            Directory.CreateDirectory(StatusServerOldPath);
+
+            foreach (var folder in Directory.EnumerateDirectories(StatusServerPath)) {
+                var dir = Path.GetFileName(folder);
+                var date = DateTime.ParseExact(dir, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                if (date + timespan < DateTime.Now) {
+                    Directory.Move(folder, Path.Combine(StatusServerOldPath, dir));
+                }
+            }
+        }
 
         public static void Initialize(IEnumerable<Status> stati) {
             if (all.Any()) {
@@ -270,10 +284,18 @@ namespace StatusServer
 			}
 		}
 
+		internal static string StatusServerOldPath {
+			get {
+				return Path.Combine(
+					Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+					"StatusServerOld");
+			}
+		}
+
 		internal string SavePath {
 			get {
 				var dir = Path.Combine(StatusServerPath,
-					DateTime.Now.ToString("yyyy-MM-dd"));
+					DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
 				Directory.CreateDirectory(dir);
 				return Path.Combine(dir, this.Name + ".txt");
 			}
