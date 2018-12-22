@@ -7,12 +7,14 @@ using System.Threading;
 
 namespace StatusServer
 {
+    // TODO warning / informational levels?
     public interface IData
     {
         string ErrorMessage { get; }
         bool HadError { get; }
     }
 
+    //TODO JSON foramt
     class StatusData : IEquatable<StatusData>, IData
     {
         public StatusData(string errorMessage = null)
@@ -85,7 +87,7 @@ namespace StatusServer
     public abstract class Status
     {
 #if DEBUG
-        static readonly TimeSpan defaultWait = TimeSpan.FromSeconds(1);
+        static readonly TimeSpan defaultWait = TimeSpan.FromSeconds(1); 
 #else
 		static readonly TimeSpan defaultWait = TimeSpan.FromMinutes(5);
 #endif
@@ -173,6 +175,7 @@ namespace StatusServer
         readonly Thread verifyThread;
         readonly EventWaitHandle verifyWait = new AutoResetEvent(true);
 
+        // TODO should be monitored by a ServerStatus
         readonly Thread hungThread;
         readonly EventWaitHandle hungWait = new AutoResetEvent(true);
 
@@ -358,6 +361,7 @@ namespace StatusServer
 
         public string Name { get; private set; }
 
+        //TODO return an IData, avoid stack trace?
         protected abstract void Verify();
 
         protected virtual TimeSpan HangDelay
